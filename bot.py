@@ -1,0 +1,28 @@
+from wsgiref.util import application_uri
+
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+
+from config import BOT_TOKEN, ALLOWED_USERS
+
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(f"Привет, {user.first_name}!")
+
+async def myid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    await update.message.reply_text(f"Твой ID: {user.id}")
+
+def main():
+    # Создаем приложение бота
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Регистрируем обработчик команд
+    application.add_handler(CommandHandler("start", start_command))
+    application.add_handler(CommandHandler("myid", myid_command))
+
+    print("Бот запущен!")
+    application.run_polling()
+
+if __name__ == "__main__":
+    main()
