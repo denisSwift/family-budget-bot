@@ -2,18 +2,31 @@ from wsgiref.util import application_uri
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+import database
+from keyboards import get_main_menu
+
 
 from config import BOT_TOKEN, ALLOWED_USERS
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    await update.message.reply_text(f"Привет, {user.first_name}!")
+
+    database.add_user(user.id, user.username, user.first_name)
+
+    await update.message.reply_text(
+        f"Привет, {user.first_name}!\n\n"
+        f"Я помогу вести семейный бюджет.\n\n"
+        f"Выбери действие:",
+        reply_markup=get_main_menu()
+    )
 
 async def myid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await update.message.reply_text(f"Твой ID: {user.id}")
 
 def main():
+
+    database.init_database()
     # Создаем приложение бота
     application = Application.builder().token(BOT_TOKEN).build()
 
