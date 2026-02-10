@@ -1,5 +1,4 @@
 import os
-from unittest.mock import DEFAULT
 
 from dotenv import load_dotenv
 

@@ -4,6 +4,7 @@ import database
 from keyboards import get_main_menu
 
 from handlers.expenses import get_expenses_handler
+from handlers.incomes import get_income_handler
 
 from config import BOT_TOKEN, ALLOWED_USERS
 
@@ -34,6 +35,7 @@ def main():
     application.add_handler(CommandHandler("myid", myid_command))
 
     application.add_handler(get_expenses_handler())
+    application.add_handler(get_income_handler())
 
     print("Бот запущен!")
     application.run_polling()
