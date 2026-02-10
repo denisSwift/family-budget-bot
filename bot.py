@@ -5,6 +5,8 @@ from keyboards import get_main_menu
 
 from handlers.expenses import get_expenses_handler
 from handlers.incomes import get_income_handler
+from handlers.reports import get_report_handler
+
 
 from config import BOT_TOKEN, ALLOWED_USERS
 
@@ -36,6 +38,7 @@ def main():
 
     application.add_handler(get_expenses_handler())
     application.add_handler(get_income_handler())
+    application.add_handler(get_report_handler())
 
     print("Бот запущен!")
     application.run_polling()

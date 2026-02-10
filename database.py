@@ -173,7 +173,7 @@ def get_monthly_expenses_total(year, month):
         SELECT COALESCE(SUM(amount), 0) as total
         FROM expenses
         WHERE strftime('%Y', expense_date) = ?
-        AND strftime('%M', expense_date) = ?
+        AND strftime('%m', expense_date) = ?
     """, (str(year), str(month).zfill(2)))
 
     result = cursor.fetchone()
@@ -189,7 +189,7 @@ def get_monthly_incomes_total(year, month):
         SELECT COALESCE(SUM(amount), 0) as total
         FROM incomes
         WHERE strftime('%Y', income_date) = ?
-        AND strftime('%M', income_date) = ?
+        AND strftime('%m', income_date) = ?
     """, (str(year), str(month).zfill(2)))
 
     result = cursor.fetchone()
