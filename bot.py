@@ -1,10 +1,9 @@
-from wsgiref.util import application_uri
-
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import database
 from keyboards import get_main_menu
 
+from handlers.expenses import get_expenses_handler
 
 from config import BOT_TOKEN, ALLOWED_USERS
 
@@ -33,6 +32,8 @@ def main():
     # Регистрируем обработчик команд
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("myid", myid_command))
+
+    application.add_handler(get_expenses_handler())
 
     print("Бот запущен!")
     application.run_polling()
