@@ -7,16 +7,36 @@ from keyboards import get_main_menu
 ENTERING_AMOUNT = 1
 ENTERING_DESCRIPTION = 2
 
+
 async def start_add_income(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Введите сумму:"
-    )
+    # Проверяем установлен ли начальный баланс
+    balance = database.get_current_balance()
+
+    if balance is None:
+        await update.message.reply_text(
+            "⚠️ Сначала установите начальный баланс!\n\n"
+            "Нажмите кнопку «💰 Текущий баланс»",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+
+    await update.message.reply_text("Введите сумму дохода:")
 
     return ENTERING_AMOUNT
 
 
 async def amount_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    amount = int(update.message.text)
+    text = update.message.text
+
+    # Проверяем, не нажал ли пользователь кнопку меню
+    if text in ["💸 Добавить расход", "💵 Добавить доход", "📊 Отчёт за месяц", "💰 Текущий баланс"]:
+        await update.message.reply_text(
+            "❌ Ввод отменён",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+    amount = int(text)
+
 
     context.user_data['amount'] = amount
 
@@ -27,8 +47,18 @@ async def amount_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ENTERING_DESCRIPTION
 
 async def description_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    description = update.message.text
+    # Проверяем, не нажал ли пользователь кнопку меню
+    if text in ["💸 Добавить расход", "💵 Добавить доход", "📊 Отчёт за месяц", "💰 Текущий баланс"]:
+        await update.message.reply_text(
+            "❌ Ввод отменён",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+
+    # Получаем описание
+    description = text
 
     user_id = update.effective_user.id
 
@@ -59,7 +89,8 @@ def get_income_handler():
                 MessageHandler(filters.TEXT, description_entered)
             ]
         },
-        fallbacks=[]
+        fallbacks=[],
+        allow_reentry=True
     )
 
 

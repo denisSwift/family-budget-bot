@@ -29,16 +29,18 @@ def init_database():
         )
     """)
 
+    # Таблица подкатегорий
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS subcategories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            is_active INTEGER DEFAULT 1, 
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (category_id) REFERENCES categories (id)
-        )
-    """)
+            CREATE TABLE IF NOT EXISTS subcategories (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES categories (id),
+                UNIQUE(category_id, name)
+            )
+        """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS expenses (
@@ -65,16 +67,20 @@ def init_database():
         )
     """)
 
-    # Таблица остатков по месяцам
+    # Таблица истории прямого запроса баланса
     cursor.execute("""
             CREATE TABLE IF NOT EXISTS balance_history (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                year INTEGER NOT NULL,
-                month INTEGER NOT NULL,
-                balance REAL NOT NULL,
-                is_manual INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(year, month)
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            amount REAL NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+    # Таблица текущего баланса (одна строка)
+    cursor.execute("""
+            CREATE TABLE IF NOT EXISTS current_balance (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                amount REAL NOT NULL DEFAULT 0
             )
         """)
 
@@ -141,7 +147,8 @@ def get_subcategories(category_id):
 
     return subcategories
 
-def add_expenses(user_id, subcategory_id, amount, description = None):
+
+def add_expense(user_id, subcategory_id, amount, description=None):
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -152,6 +159,10 @@ def add_expenses(user_id, subcategory_id, amount, description = None):
 
     connection.commit()
     connection.close()
+
+    # Уменьшаем текущий баланс
+    update_balance(-amount)
+
 
 def add_income(user_id, amount, description=None):
     connection = get_connection()
@@ -164,6 +175,9 @@ def add_income(user_id, amount, description=None):
 
     connection.commit()
     connection.close()
+
+    # Увеличиваем текущий баланс
+    update_balance(amount)
 
 def get_monthly_expenses_total(year, month):
     connection = get_connection()
@@ -257,63 +271,64 @@ def get_expenses_detail(year, month, subcategory_id):
 
     return result
 
-def get_monthly_balance(year, month):
-    incomes = get_monthly_incomes_total(year, month)
-    expenses = get_monthly_expenses_total(year, month)
-    balance = incomes - expenses
 
-    return {
-        'incomes': incomes,
-        'expenses': expenses,
-        'balance': balance
-    }
-
-# Установить остаток вручную
-def set_balance(year, month, balance):
+def get_current_balance():
     connection = get_connection()
     cursor = connection.cursor()
 
+    cursor.execute("SELECT amount FROM current_balance WHERE id = 1")
+    result = cursor.fetchone()
+    connection.close()
+
+    if result:
+        return result['amount']
+    return None
+
+
+def set_current_balance(amount):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    # Вставляем или обновляем единственную строку
     cursor.execute("""
-        INSERT OR REPLACE INTO balance_history (year, month, balance, is_manual)
-        VALUES (?, ?, ?, 1)
-    """, (year, month, balance))
+        INSERT OR REPLACE INTO current_balance (id, amount)
+        VALUES (1, ?)
+    """, (amount,))
 
     connection.commit()
     connection.close()
 
 
-def get_balance(year, month):
-    # Вычисляем предыдущий месяц
-    if month == 1:
-        prev_year = year - 1
-        prev_month = 12
-    else:
-        prev_year = year
-        prev_month = month - 1
+def update_balance(change):
+    # change положительный для дохода, отрицательный для расхода
+    current = get_current_balance()
+
+    if current is None:
+        return None
+
+    new_balance = current + change
+    set_current_balance(new_balance)
+    return new_balance
+
+
+def save_balance_to_history():
+    # Сохраняем текущий баланс в историю
+    current = get_current_balance()
+
+    if current is None:
+        return
 
     connection = get_connection()
     cursor = connection.cursor()
 
-    # Берём баланс предыдущего месяца
     cursor.execute("""
-        SELECT balance FROM balance_history
-        WHERE year = ? AND month = ?
-    """, (prev_year, prev_month))
+        INSERT INTO balance_history (amount)
+        VALUES (?)
+    """, (current,))
 
-    result = cursor.fetchone()
+    connection.commit()
     connection.close()
 
-    if not result:
-        return None  # Нет начального баланса
 
-    prev_balance = result['balance']
 
-    # Считаем: баланс + доходы − расходы прошлого месяца
-    incomes = get_monthly_incomes_total(prev_year, prev_month)
-    expenses = get_monthly_expenses_total(prev_year, prev_month)
-    new_balance = prev_balance + incomes - expenses
 
-    # Записываем на текущий месяц
-    set_balance(year, month, new_balance)
-
-    return new_balance

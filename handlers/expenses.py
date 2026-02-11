@@ -12,9 +12,21 @@ SELECTING_SUBCATEGORY = 2
 ENTERING_AMOUNT = 3
 ENTERING_DESCRIPTION = 4
 
+
 async def start_add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем установлен ли начальный баланс
+    balance = database.get_current_balance()
+
+    if balance is None:
+        await update.message.reply_text(
+            "⚠️ Сначала установите начальный баланс!\n\n"
+            "Нажмите кнопку «💰 Текущий баланс»",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+
     await update.message.reply_text(
-        "Выбери категорию:",
+        "Выберите категорию:",
         reply_markup=get_categories_keyboard()
     )
 
@@ -54,8 +66,18 @@ async def subcategory_selected(update: Update, context: ContextTypes.DEFAULT_TYP
     return ENTERING_AMOUNT
 
 async def amount_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    amount = int(update.message.text)
+    # Проверяем, не нажал ли пользователь кнопку меню
+    if text in ["💸 Добавить расход", "💵 Добавить доход", "📊 Отчёт за месяц", "💰 Текущий баланс"]:
+        await update.message.reply_text(
+            "❌ Ввод отменён",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+
+    # Получаем сумму
+    amount = int(text)
 
     context.user_data['amount'] = amount
 
@@ -66,15 +88,25 @@ async def amount_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ENTERING_DESCRIPTION
 
 async def description_entered(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
 
-    description = update.message.text
+    # Проверяем, не нажал ли пользователь кнопку меню
+    if text in ["💸 Добавить расход", "💵 Добавить доход", "📊 Отчёт за месяц", "💰 Текущий баланс"]:
+        await update.message.reply_text(
+            "❌ Ввод отменён",
+            reply_markup=get_main_menu()
+        )
+        return ConversationHandler.END
+
+    # Получаем описание
+    description = text
 
     user_id = update.effective_user.id
 
     subcategory_id = context.user_data['subcategory_id']
     amount = context.user_data['amount']
 
-    database.add_expenses(user_id, subcategory_id, amount, description)
+    database.add_expense(user_id, subcategory_id, amount, description)
 
     context.user_data.clear()
 
@@ -108,7 +140,8 @@ def get_expenses_handler():
                 MessageHandler(filters.TEXT, description_entered)
             ]
         },
-        fallbacks=[]
+        fallbacks=[],
+        allow_reentry = True
     )
 
 

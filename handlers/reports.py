@@ -45,7 +45,10 @@ async def month_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['month'] = month
     context.user_data['year'] = year
 
-    balance_data = database.get_monthly_balance(year, month)
+    # Получаем данные из базы
+    incomes = database.get_monthly_incomes_total(year, month)
+    expenses = database.get_monthly_expenses_total(year, month)
+    current_balance = database.get_current_balance()
     categories_data = database.get_monthly_expenses_by_category(year, month)
 
     # Названия месяцев
@@ -56,12 +59,11 @@ async def month_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     month_name = month_names[month]
 
-    # Формируем текст отчёта
     text = f"📊 Отчёт за {month_name} {year}\n"
     text += "─────────────────────\n"
-    text += f"💵 Доходы: {balance_data['incomes']} {CURRENCY}\n"
-    text += f"💸 Расходы: {balance_data['expenses']} {CURRENCY}\n"
-    text += f"💰 Баланс: {balance_data['balance']} {CURRENCY}\n"
+    text += f"💵 Доходы: {int(incomes)} {CURRENCY}\n"
+    text += f"💸 Расходы: {int(expenses)} {CURRENCY}\n"
+    text += f"📈 Разница: {int(incomes - expenses)} {CURRENCY}\n"
     text += "─────────────────────\n"
 
     if categories_data:
@@ -197,7 +199,9 @@ async def back_to_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['month'] = month
 
     # Получаем данные из базы
-    balance_data = database.get_monthly_balance(year, month)
+    incomes = database.get_monthly_incomes_total(year, month)
+    expenses = database.get_monthly_expenses_total(year, month)
+    current_balance = database.get_current_balance()
     categories_data = database.get_monthly_expenses_by_category(year, month)
 
     # Названия месяцев
@@ -208,12 +212,11 @@ async def back_to_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     month_name = month_names[month]
 
-    # Формируем текст отчёта
     text = f"📊 Отчёт за {month_name} {year}\n"
     text += "─────────────────────\n"
-    text += f"💵 Доходы: {balance_data['incomes']} {CURRENCY}\n"
-    text += f"💸 Расходы: {balance_data['expenses']} {CURRENCY}\n"
-    text += f"💰 Баланс: {balance_data['balance']} {CURRENCY}\n"
+    text += f"💵 Доходы: {int(incomes)} {CURRENCY}\n"
+    text += f"💸 Расходы: {int(expenses)} {CURRENCY}\n"
+    text += f"📈 Разница: {int(incomes - expenses)} {CURRENCY}\n"
     text += "─────────────────────\n"
 
     if categories_data:
