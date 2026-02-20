@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from config import ALLOWED_USERS
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, CallbackQueryHandler, filters
 
@@ -21,6 +21,10 @@ VIEWING_CATEGORY = 3
 VIEWING_SUBCATEGORY = 4
 
 async def start_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем доступ
+    if update.effective_user.id not in ALLOWED_USERS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return ConversationHandler.END
 
     current_year = datetime.now().year
 

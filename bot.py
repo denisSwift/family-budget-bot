@@ -15,6 +15,11 @@ from config import BOT_TOKEN, ALLOWED_USERS
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
+    # Проверяем доступ
+    if user.id not in ALLOWED_USERS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return
+
     database.add_user(user.id, user.username, user.first_name)
 
     await update.message.reply_text(

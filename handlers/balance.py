@@ -1,5 +1,5 @@
 from datetime import datetime
-
+from config import ALLOWED_USERS
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler, MessageHandler, filters
 
@@ -12,9 +12,13 @@ ENTERING_INITIAL_BALANCE = 1
 
 
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем доступ
+    if update.effective_user.id not in ALLOWED_USERS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return ConversationHandler.END
+
     # Получаем текущий баланс
     balance = database.get_current_balance()
-
     # Если баланс не установлен — просим установить
     if balance is None:
         await update.message.reply_text(

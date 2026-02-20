@@ -2,7 +2,7 @@ from pyexpat.errors import messages
 
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, filters
-
+from config import ALLOWED_USERS
 import database
 from keyboards import get_categories_keyboard, get_subcategories_keyboard, get_main_menu
 
@@ -14,6 +14,11 @@ ENTERING_DESCRIPTION = 4
 
 
 async def start_add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Проверяем доступ
+    if update.effective_user.id not in ALLOWED_USERS:
+        await update.message.reply_text("⛔ Доступ запрещён")
+        return ConversationHandler.END
+
     # Проверяем установлен ли начальный баланс
     balance = database.get_current_balance()
 
