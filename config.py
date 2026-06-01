@@ -12,8 +12,11 @@ ALLOWED_USERS_STR = os.getenv("ALLOWED_USERS", "")
 ALLOWED_USERS = []
 
 for user_id in ALLOWED_USERS_STR.split(","):
-    if user_id:
-        ALLOWED_USERS.append(int(user_id))
+    try:
+        if user_id.strip():
+            ALLOWED_USERS.append(int(user_id.strip()))
+    except ValueError:
+        pass
 
 DEFAULT_CATEGORIES = {
     "📋 Налоги": [
@@ -29,7 +32,8 @@ DEFAULT_CATEGORIES = {
     "🛒 Повседневные расходы": [
         "Базовые",
         "Рестораны и кафе",
-        "Косметика",
+        "Одежда и украшения",
+        "Уход за собой",
         "Машина",
         "Такси",
         "Другое"
@@ -51,6 +55,7 @@ DEFAULT_CATEGORIES = {
         "Билеты и отели",
         "Питание",
         "Развлечения",
+        "Сплитвайз",
         "Другое"
     ]
 }

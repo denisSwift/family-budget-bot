@@ -1,7 +1,9 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import database
-from keyboards import get_main_menu
+
+from keyboards import get_main_menu_inline
+
 
 from handlers.expenses import get_expenses_handler
 from handlers.incomes import get_income_handler
@@ -20,14 +22,29 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ Доступ запрещён")
         return
 
+    # Сохраняем пользователя в БД
     database.add_user(user.id, user.username, user.first_name)
 
+    # Показываем inline-меню
     await update.message.reply_text(
         f"Привет, {user.first_name}!\n\n"
         f"Я помогу вести семейный бюджет.\n\n"
         f"Выбери действие:",
-        reply_markup=get_main_menu()
+        reply_markup=get_main_menu_inline()
     )
+
+
+async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Показывает главное меню"""
+    query = update.callback_query
+    await query.answer()
+
+    await query.edit_message_text(
+        "Выбери действие:",
+        reply_markup=get_main_menu_inline()
+    )
+
+
 
 async def myid_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user

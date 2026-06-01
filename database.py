@@ -148,14 +148,20 @@ def get_subcategories(category_id):
     return subcategories
 
 
-def add_expense(user_id, subcategory_id, amount, description=None):
+def add_expense(user_id, subcategory_id, amount, description=None, expense_date=None):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute("""
-        INSERT INTO expenses (user_id, subcategory_id, amount, description)
-        VALUES (?, ?, ?, ?)
-    """, (user_id, subcategory_id, amount, description))
+    if expense_date:
+        cursor.execute("""
+            INSERT INTO expenses (user_id, subcategory_id, amount, description, expense_date)
+            VALUES (?, ?, ?, ?, ?)
+        """, (user_id, subcategory_id, amount, description, expense_date))
+    else:
+        cursor.execute("""
+            INSERT INTO expenses (user_id, subcategory_id, amount, description)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, subcategory_id, amount, description))
 
     connection.commit()
     connection.close()
@@ -164,20 +170,47 @@ def add_expense(user_id, subcategory_id, amount, description=None):
     update_balance(-amount)
 
 
-def add_income(user_id, amount, description=None):
+def add_income(user_id, amount, description=None, income_date=None):
     connection = get_connection()
     cursor = connection.cursor()
 
-    cursor.execute("""
-        INSERT INTO incomes (user_id, amount, description)
-        VALUES (?, ?, ?)
-    """, (user_id, amount, description))
+    if income_date:
+        cursor.execute("""
+            INSERT INTO incomes (user_id, amount, description, income_date)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, amount, description, income_date))
+    else:
+        cursor.execute("""
+            INSERT INTO incomes (user_id, amount, description)
+            VALUES (?, ?, ?)
+        """, (user_id, amount, description))
 
     connection.commit()
     connection.close()
 
     # Увеличиваем текущий баланс
     update_balance(amount)
+
+
+def get_monthly_incomes_detail(year, month):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT COALESCE(description, '(без описания)') as source,
+               SUM(amount) as total,
+               COUNT(*) as count
+        FROM incomes
+        WHERE strftime('%Y', income_date) = ?
+        AND strftime('%m', income_date) = ?
+        GROUP BY description
+        ORDER BY total DESC
+    """, (str(year), str(month).zfill(2)))
+
+    result = cursor.fetchall()
+    connection.close()
+
+    return result
 
 def get_monthly_expenses_total(year, month):
     connection = get_connection()
@@ -249,7 +282,7 @@ def get_monthly_expenses_by_subcategory(year, month, category_id):
     """, (category_id, str(year), str(month).zfill(2)))
 
     result = cursor.fetchall()
-    cursor.close()
+    connection.close()
 
     return result
 
@@ -267,7 +300,7 @@ def get_expenses_detail(year, month, subcategory_id):
     """, (subcategory_id, str(year), str(month).zfill(2)))
 
     result = cursor.fetchall()
-    cursor.close()
+    connection.close()
 
     return result
 
